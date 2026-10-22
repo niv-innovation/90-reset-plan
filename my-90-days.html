@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>My 90-Day Reset</title>
+    <link rel="manifest" id="manifestLink">
+    <style>
+        :root {
+            --bg: #121212; --surface: #1e1e1e; --text: #e0e0e0;
+            --accent: #bb86fc; --accent-variant: #3700b3;
+            --border: #333; --highlight: #2a2a2a;
+        }
+        body {
+            margin: 0; padding: 0; background-color: var(--bg); color: var(--text);
+            font-family: system-ui, -apple-system, sans-serif;
+            padding-bottom: 80px; /* Space for bottom nav */
+        }
+        * { box-sizing: border-box; }
+        h1, h2, h3, h4 { margin-top: 0; color: #fff; }
+        .container { max-width: 600px; margin: 0 auto; padding: 16px; }
+        
+        /* Tab Navigation */
+        .tab-content { display: none; animation: fadeIn 0.2s ease-in; }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        nav {
+            position: fixed; bottom: 0; left: 0; width: 100%;
+            background-color: var(--surface); border-top: 1px solid var(--border);
+            display: flex; justify-content: space-around; padding: 8px 0;
+            padding-bottom: env(safe-area-inset-bottom, 8px);
+            z-index: 1000;
+        }
+        .nav-btn {
+            background: none; border: none; color: #888; font-size: 12px;
+            display: flex; flex-direction: column; align-items: center;
+            min-height: 48px; min-width: 60px; cursor: pointer;
+        }
+        .nav-btn.active { color: var(--accent); }
+        .nav-icon { font-size: 20px; margin-bottom: 4px; }
+
+        /* Cards & Checkboxes */
+        .card { background-color: var(--surface); padding: 16px; border-radius: 12px; margin-bottom: 16px; }
+        .highlight-card { border-left: 4px solid var(--accent); background-color: var(--highlight); }
+        .cb-item { display: flex; align-items: flex-start; margin-bottom: 16px; font-size: 16px; line-height: 1.4; }
+        .cb-item input[type="checkbox"] {
+            appearance: none; width: 24px; height: 24px; margin: 0 12px 0 0;
+            border: 2px solid var(--accent); border-radius: 4px;
+            display: grid; place-content: center; flex-shrink: 0;
+        }
+        .cb-item input[type="checkbox"]::before {
+            content: ""; width: 12px; height: 12px; transform: scale(0);
+            box-shadow: inset 1em 1em var(--accent); transform-origin: center;
+            clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+        }
+        .cb-item input[type="checkbox"]:checked::before { transform: scale(1); }
+        .cb-item input[type="checkbox"]:checked + span { text-decoration: line-through; color: #888; }
+        .cb-text { margin-top: 2px; }
+
+        /* Inputs & Buttons */
+        textarea {
+            width: 100%; height: 80px; background-color: var(--bg); color: var(--text); 
+            border: 1px solid var(--border); border-radius: 8px; padding: 12px; 
+            font-family: inherit; font-size: 16px; resize: none; margin-bottom: 16px;
+        }
+        .btn {
+            background-color: var(--accent); color: var(--bg);
+            border: none; border-radius: 8px; padding: 12px 24px;
+            font-size: 16px; font-weight: bold; cursor: pointer; width: 100%;
+            min-height: 48px;
+        }
+        .header-box { display: flex; justify-content: space-between; align-items: baseline; }
+        .streak-text { color: var(--accent); font-weight: bold; font-size: 18px; }
+        .timer-box { text-align: center; margin: 16px 0; font-size: 32px; font-weight: bold; color: var(--accent); }
+        .warning { font-size: 14px; color: #ff5252; margin-top: 8px; border: 1px solid #ff5252; padding: 8px; border-radius: 6px;}
+        hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+        .text-sm { font-size: 14px; color: #aaa; margin-bottom: 8px; display: block; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- TODAY TAB -->
+    <div id="today" class="tab-content active">
+        <div class="header-box">
+            <h2>Today</h2>
+            <div id="streakCounter" class="streak-text">🔥 Streak: 0</div>
+        </div>
+        <div class="card">
+            <h3 id="todayDateStr">Date</h3>
+            <p id="nextExamCountdown" style="color: var(--accent); font-weight:bold;"></p>
+            <hr>
+            <h4>Daily Checklist (Resets at midnight)</h4>
+            <label class="cb-item"><input type="checkbox" id="daily_study" class="daily-cb"><span class="cb-text">Study 90 min (three 25-min blocks, phone in another room)</span></label>
+            <label class="cb-item"><input type="checkbox" id="daily_workout" class="daily-cb"><span class="cb-text">Walk or workout 30 min</span></label>
+            <label class="cb-item"><input type="checkbox" id="daily_read" class="daily-cb"><span class="cb-text">Read aloud 3 min</span></label>
+            <label class="cb-item"><input type="checkbox" id="daily_convo" class="daily-cb"><span class="cb-text">One real conversation</span></label>
+            <label class="cb-item"><input type="checkbox" id="daily_phone" class="daily-cb"><span class="cb-text">Phone under 2 hours</span></label>
+            <label class="cb-item"><input type="checkbox" id="daily_sleep" class="daily-cb"><span class="cb-text">Sleep by 11:45 pm</span></label>
+        </div>
+        <div class="card">
+            <h4>Daily Win</h4>
+            <textarea id="dailyWins" placeholder="Type one win today..."></textarea>
+        </div>
+    </div>
+
+    <!-- EXAMS TAB -->
+    <div id="exams" class="tab-content">
+        <h2>Exams & Study Phases</h2>
+        
+        <div class="card">
+            <h4>Study Phases</h4>
+            <div id="phase1" class="card" style="margin-bottom:8px; padding:12px;">Phase 1 (23 Oct - 22 Nov):<br><span class="text-sm">Microwave Antenna then Optical Fibre</span></div>
+            <div id="phase2" class="card" style="margin-bottom:8px; padding:12px;">Phase 2 (26 Nov - 13 Dec):<br><span class="text-sm">VLSI, Info Theory, Embedded</span></div>
+            <div id="phase3" class="card" style="margin-bottom:8px; padding:12px;">Phase 3 (19 Dec - 6 Jan):<br><span class="text-sm">Signals/Systems basics, Linear ICs, start DSP, Comm, Control</span></div>
+            <div id="phase4" class="card" style="margin-bottom:8px; padding:12px;">Phase 4 (8 Jan - 17 Jan):<br><span class="text-sm">Revise DSP, Comm, Control, PDE and Complex</span></div>
+            <div id="phase5" class="card" style="margin-bottom:8px; padding:12px;">Phase 5 (19 Jan - 7 Feb):<br><span class="text-sm">Network Theory, Analog Circuits, Signals/Systems, Computer Arch</span></div>
+        </div>
+
+        <div class="card">
+            <h4>Exam Countdown</h4>
+            <div id="examsList"></div>
+        </div>
+    </div>
+
+    <!-- FITNESS TAB -->
+    <div id="fitness" class="tab-content">
+        <h2>Fitness Plan</h2>
+        <div class="warning">⚠️ Stop and see a doctor if you feel chest pain or dizziness.</div>
+        
+        <div class="card" style="text-align: center;">
+            <h4>Plank Timer</h4>
+            <div id="timerDisplay" class="timer-box">0s</div>
+            <button id="timerBtn" class="btn" onclick="toggleTimer()">Start Timer</button>
+        </div>
+
+        <div id="fit-w1" class="card">
+            <h4>Weeks 1-2</h4>
+            <span class="text-sm">20 min easy walk daily<br>Strength 3 days/week:</span>
+            <label class="cb-item"><input type="checkbox" id="fit_w1_s1"><span class="cb-text">2 rounds: 10 squats, 8 wall push-ups, 12 glute bridges, 20-sec plank</span></label>
+        </div>
+        <div id="fit-w3" class="card">
+            <h4>Weeks 3-4</h4>
+            <span class="text-sm">30 min brisk walk daily<br>Strength 3 days/week:</span>
+            <label class="cb-item"><input type="checkbox" id="fit_w3_s1"><span class="cb-text">3 rounds: 10 squats, 8 wall push-ups, 12 glute bridges, 20-sec plank</span></label>
+        </div>
+        <div id="fit-w5" class="card">
+            <h4>Weeks 5-8</h4>
+            <span class="text-sm">Walk 2m / Jog 1m (x8), 4 days/week<br>Strength 3 days/week:</span>
+            <label class="cb-item"><input type="checkbox" id="fit_w5_s1"><span class="cb-text">3 rounds: 12 squats, 8 knee push-ups, 12 glute bridges, 30-sec plank</span></label>
+        </div>
+        <div id="fit-w9" class="card">
+            <h4>Weeks 9-12</h4>
+            <span class="text-sm">Jog 20 min, 3 days/week<br>Strength 3 days/week:</span>
+            <label class="cb-item"><input type="checkbox" id="fit_w9_s1"><span class="cb-text">3 rounds: 15 squats, 10 push-ups, 15 glute bridges, 40-sec plank</span></label>
+        </div>
+    </div>
+
+    <!-- PEOPLE TAB -->
+    <div id="people" class="tab-content">
+        <h2>Social Ladder</h2>
+        <div class="card">
+            <h4>Week 1</h4>
+            <label class="cb-item"><input type="checkbox" id="soc_w1_1"><span class="cb-text">Daily conversation past the transaction</span></label>
+            <label class="cb-item"><input type="checkbox" id="soc_w1_2"><span class="cb-text">One in-person meetup with a friend</span></label>
+        </div>
+        <div class="card">
+            <h4>Week 2</h4>
+            <label class="cb-item"><input type="checkbox" id="soc_w2_1"><span class="cb-text">Join one regular group (robotics, sport, gym)</span></label>
+        </div>
+        <div class="card">
+            <h4>Week 3</h4>
+            <label class="cb-item"><input type="checkbox" id="soc_w3_1"><span class="cb-text">Start the plan twice (invite two people)</span></label>
+            <label class="cb-item"><input type="checkbox" id="soc_w3_2"><span class="cb-text">Send follow-up messages a day later</span></label>
+        </div>
+        <div class="card">
+            <h4>Week 4</h4>
+            <label class="cb-item"><input type="checkbox" id="soc_w4_1"><span class="cb-text">10-min no-agenda conversation with a woman in group/class/work (ask 2 follow-up questions first)</span></label>
+        </div>
+    </div>
+
+    <!-- WEEKLY TAB -->
+    <div id="weekly" class="tab-content">
+        <h2>Sunday Reset Checklist</h2>
+        <div class="card">
+            <label class="cb-item"><input type="checkbox" id="wk_study" class="weekly-cb"><span class="cb-text">Studied 5+ days</span></label>
+            <label class="cb-item"><input type="checkbox" id="wk_paper" class="weekly-cb"><span class="cb-text">Solved a past paper under a timer</span></label>
+            <label class="cb-item"><input type="checkbox" id="wk_fit" class="weekly-cb"><span class="cb-text">Cardio 4 days, Strength 3 days</span></label>
+            <label class="cb-item"><input type="checkbox" id="wk_soc" class="weekly-cb"><span class="cb-text">5+ real conversations & one meetup</span></label>
+            <label class="cb-item"><input type="checkbox" id="wk_health" class="weekly-cb"><span class="cb-text">Phone near 2 hours & sleep by midnight</span></label>
+            <label class="cb-item"><input type="checkbox" id="wk_write" class="weekly-cb"><span class="cb-text">Wrote one thing finished & one thing proud of</span></label>
+            <br>
+            <button class="btn" id="resetWeekBtn">Reset Week</button>
+        </div>
+    </div>
+</div>
+
+<!-- Bottom Nav -->
+<nav>
+    <button class="nav-btn active" id="nav-today" onclick="showTab('today')">
+        <span class="nav-icon">📅</span>Today
+    </button>
+    <button class="nav-btn" id="nav-exams" onclick="showTab('exams')">
+        <span class="nav-icon">📝</span>Exams
+    </button>
+    <button class="nav-btn" id="nav-fitness" onclick="showTab('fitness')">
+        <span class="nav-icon">💪</span>Fitness
+    </button>
+    <button class="nav-btn" id="nav-people" onclick="showTab('people')">
+        <span class="nav-icon">🗣️</span>People
+    </button>
+    <button class="nav-btn" id="nav-weekly" onclick="showTab('weekly')">
+        <span class="nav-icon">🔄</span>Weekly
+    </button>
+</nav>
+
+<script>
+    // --- MANIFEST GENERATION (Installability) ---
+    const manifest = {
+      "name": "My 90-Day Reset", "short_name": "90D Reset", "start_url": ".", "display": "standalone",
+      "background_color": "#121212", "theme_color": "#121212",
+      "icons": [{"src": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='192' height='192'><rect width='192' height='192' fill='%23bb86fc'/><text x='50%' y='50%' font-size='80' font-family='sans-serif' text-anchor='middle' dy='.3em' fill='white'>90</text></svg>", "sizes": "192x192", "type": "image/svg+xml"}]
+    };
+    document.getElementById('manifestLink').setAttribute('href', 'data:application/manifest+json;charset=utf-8,' + encodeURIComponent(JSON.stringify(manifest)));
+
+    // --- DATE LOGIC ---
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    const todayStr = today.toISOString().split('T')[0];
+    document.getElementById('todayDateStr').innerText = today.toDateString();
+
+    // --- TAB SWITCHING ---
+    function showTab(tabId) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        document.getElementById('nav-' + tabId).classList.add('active');
+        localStorage.setItem('activeTab', tabId);
+    }
+    showTab(localStorage.getItem('activeTab') || 'today');
+
+    // --- EXAMS LOGIC ---
+    const examData = [
+        { d: '2026-11-23', n: 'Microwave Antenna (tough)' },
+        { d: '2026-11-25', n: 'Optical Fibre Comm' },
+        { d: '2026-12-14', n: 'VLSI Circuit Design' },
+        { d: '2026-12-16', n: 'Information Theory and Coding' },
+        { d: '2026-12-18', n: 'Embedded Systems' },
+        { d: '2027-01-07', n: 'Linear Integrated Circuits' },
+        { d: '2027-01-11', n: 'Digital Signal Processing (tough)' },
+        { d: '2027-01-13', n: 'Analog and Digital Comm (tough)' },
+        { d: '2027-01-15', n: 'Control System (tough)' },
+        { d: '2027-01-18', n: 'Partial Differential Equations & Complex (tough)' },
+        { d: '2027-01-25', n: 'Network Theory (tough)' },
+        { d: '2027-02-04', n: 'Analog Circuits (tough)' },
+        { d: '2027-02-06', n: 'Signals and Systems (tough)' },
+        { d: '2027-02-08', n: 'Computer Architecture' }
+    ];
+
+    const examsList = document.getElementById('examsList');
+    let nextExam = null;
+
+    examData.forEach((ex, index) => {
+        const exDate = new Date(ex.d);
+        if(!nextExam && exDate >= today) nextExam = ex;
+        
+        const dateStr = exDate.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric'});
+        examsList.innerHTML += `
+            <label class="cb-item">
+                <input type="checkbox" id="exam_prep_${index}">
+                <span class="cb-text">${dateStr} - ${ex.n} (Prepared)</span>
+            </label>`;
+    });
+
+    if(nextExam) {
+        const diff = Math.ceil((new Date(nextExam.d) - today) / (1000 * 60 * 60 * 24));
+        document.getElementById('nextExamCountdown').innerText = `Next: ${nextExam.n} in ${diff} days`;
+    } else {
+        document.getElementById('nextExamCountdown').innerText = `All exams finished!`;
+    }
+
+    // --- STUDY PHASES LOGIC ---
+    const phases = [
+        { id: 'phase1', s: '2026-10-23', e: '2026-11-22' },
+        { id: 'phase2', s: '2026-11-26', e: '2026-12-13' },
+        { id: 'phase3', s: '2026-12-19', e: '2027-01-06' },
+        { id: 'phase4', s: '2027-01-08', e: '2027-01-17' },
+        { id: 'phase5', s: '2027-01-19', e: '2027-02-07' }
+    ];
+    phases.forEach(p => {
+        if (today >= new Date(p.s) && today <= new Date(p.e)) {
+            document.getElementById(p.id).classList.add('highlight-card');
+        }
+    });
+
+    // --- FITNESS WEEKS LOGIC ---
+    const fitnessStart = new Date('2026-10-23');
+    fitnessStart.setHours(0,0,0,0);
+    const daysSinceFit = Math.floor((today - fitnessStart) / (1000 * 60 * 60 * 24));
+    let currentWeek = Math.floor(daysSinceFit / 7) + 1;
+    if(currentWeek < 1) currentWeek = 1;
+    
+    if (currentWeek <= 2) document.getElementById('fit-w1').classList.add('highlight-card');
+    else if (currentWeek <= 4) document.getElementById('fit-w3').classList.add('highlight-card');
+    else if (currentWeek <= 8) document.getElementById('fit-w5').classList.add('highlight-card');
+    else document.getElementById('fit-w9').classList.add('highlight-card');
+
+    // Plank Timer
+    let timerInterval; let seconds = 0;
+    function toggleTimer() {
+        const btn = document.getElementById('timerBtn');
+        if(timerInterval) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+            btn.innerText = 'Start Timer';
+        } else {
+            seconds = 0;
+            document.getElementById('timerDisplay').innerText = seconds + 's';
+            btn.innerText = 'Stop Timer';
+            timerInterval = setInterval(() => {
+                seconds++;
+                document.getElementById('timerDisplay').innerText = seconds + 's';
+            }, 1000);
+        }
+    }
+
+    // --- LOCALSTORAGE & STREAK LOGIC ---
+    // 1. Reset daily tasks at midnight
+    if (localStorage.getItem('lastSavedDate') !== todayStr) {
+        document.querySelectorAll('.daily-cb').forEach(cb => localStorage.removeItem(cb.id));
+        localStorage.setItem('lastSavedDate', todayStr);
+    }
+
+    function calculateStreak() {
+        const dailyCBs = document.querySelectorAll('.daily-cb');
+        const allChecked = Array.from(dailyCBs).every(cb => cb.checked);
+        let completedDates = JSON.parse(localStorage.getItem('completedDates') || '[]');
+
+        if (allChecked && !completedDates.includes(todayStr)) {
+            completedDates.push(todayStr);
+        } else if (!allChecked) {
+            completedDates = completedDates.filter(d => d !== todayStr);
+        }
+        localStorage.setItem('completedDates', JSON.stringify(completedDates));
+
+        let streak = 0;
+        let checkDate = new Date(today);
+        if (!completedDates.includes(todayStr)) checkDate.setDate(checkDate.getDate() - 1); // Check backwards from yesterday
+        
+        while(true) {
+            if (completedDates.includes(checkDate.toISOString().split('T')[0])) {
+                streak++;
+                checkDate.setDate(checkDate.getDate() - 1);
+            } else break;
+        }
+        document.getElementById('streakCounter').innerText = `🔥 Streak: ${streak}`;
+    }
+
+    // 2. Bind inputs to localStorage
+    document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+        cb.checked = localStorage.getItem(cb.id) === 'true';
+        cb.addEventListener('change', () => {
+            localStorage.setItem(cb.id, cb.checked);
+            if(cb.classList.contains('daily-cb')) calculateStreak();
+        });
+    });
+    
+    // Check initial streak load
+    calculateStreak();
+
+    // 3. Wins Box
+    const winsBox = document.getElementById('dailyWins');
+    winsBox.value = localStorage.getItem('dailyWins') || '';
+    winsBox.addEventListener('input', () => localStorage.setItem('dailyWins', winsBox.value));
+
+    // 4. Weekly Reset
+    document.getElementById('resetWeekBtn').addEventListener('click', () => {
+        document.querySelectorAll('.weekly-cb').forEach(cb => {
+            cb.checked = false;
+            localStorage.setItem(cb.id, false);
+        });
+    });
+</script>
+</body>
+</html>
